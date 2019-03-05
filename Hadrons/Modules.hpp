@@ -34,6 +34,7 @@
 #include <Hadrons/Modules/MGauge/Electrify.hpp>
 #include <Hadrons/Modules/MNoise/TimeDilutedSpinColorDiagonal.hpp>
 #include <Hadrons/Modules/MNoise/FullVolumeSpinColorDiagonal.hpp>
+#include <Hadrons/Modules/MUtilities/GaussDistribution.hpp>
 #include <Hadrons/Modules/MUtilities/PrecisionCast.hpp>
 #include <Hadrons/Modules/MUtilities/RandomVectors.hpp>
 #include <Hadrons/Modules/MScalar/FreeProp.hpp>
