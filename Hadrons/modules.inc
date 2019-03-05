@@ -6,6 +6,7 @@ modules_cc =\
   Modules/MContraction/WeakNonEye3pt.cc \
   Modules/MContraction/A2AAslashField.cc \
   Modules/MContraction/A2AMesonField.cc \
+  Modules/MContraction/A2ASmearedMesonField.cc \
   Modules/MContraction/DiscLoop.cc \
   Modules/MContraction/Gamma3pt.cc \
   Modules/MFermion/FreeProp.cc \
@@ -33,6 +34,7 @@ modules_cc =\
   Modules/MGauge/GaugeFix.cc \
   Modules/MNoise/FullVolumeSpinColorDiagonal.cc \
   Modules/MNoise/TimeDilutedSpinColorDiagonal.cc \
+  Modules/MUtilities/GaussDistribution.cc \
   Modules/MUtilities/RandomVectors.cc \
   Modules/MUtilities/PrecisionCast.cc \
   Modules/MScalar/FreeProp.cc \
@@ -69,6 +71,7 @@ modules_hpp =\
   Modules/MContraction/A2AAslashField.hpp \
   Modules/MContraction/A2ALoop.hpp \
   Modules/MContraction/A2AMesonField.hpp \
+  Modules/MContraction/A2ASmearedMesonField.hpp \
   Modules/MContraction/Meson.hpp \
   Modules/MContraction/DiscLoop.hpp \
   Modules/MContraction/Gamma3pt.hpp \
@@ -99,6 +102,7 @@ modules_hpp =\
   Modules/MGauge/Electrify.hpp \
   Modules/MNoise/TimeDilutedSpinColorDiagonal.hpp \
   Modules/MNoise/FullVolumeSpinColorDiagonal.hpp \
+  Modules/MUtilities/GaussDistribution.hpp \
   Modules/MUtilities/PrecisionCast.hpp \
   Modules/MUtilities/RandomVectors.hpp \
   Modules/MScalar/FreeProp.hpp \
