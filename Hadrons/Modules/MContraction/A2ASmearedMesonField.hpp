@@ -382,6 +382,7 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
             {
                ss << '_' << pmu;
             }
+            ss << "_smearing_" << m/nmom_smear;
 
             return ss.str();
         };
