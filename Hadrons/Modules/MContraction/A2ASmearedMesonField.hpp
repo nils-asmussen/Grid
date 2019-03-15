@@ -65,8 +65,8 @@ class A2ASmearedMesonFieldMetadata: Serializable
 {
 public:
     GRID_SERIALIZABLE_CLASS_MEMBERS(A2ASmearedMesonFieldMetadata,
-                                    std::vector<RealF>, mom_smear,
-                                    std::vector<RealF>, mom_rel,
+                                    std::vector<int>, mom_smear,
+                                    std::vector<int>, mom_rel,
                                     Gamma::Algebra, gamma);
 };
 
@@ -138,15 +138,15 @@ public:
     virtual void execute(void);
 private:
     std::vector<Gamma::Algebra>        gamma_;
-    std::vector<std::vector<Real>>     mom_smear_;
-    std::vector<std::vector<Real>>     mom_rel_;
+    std::vector<std::vector<int>>     mom_smear_;
+    std::vector<std::vector<int>>     mom_rel_;
     template<typename Lattice, typename Iterable>
     void multidim_Cshift_inplace(Lattice &lat, const Iterable &shifts);
     void smearing_weight(std::vector<ComplexField> &out,
             const std::vector<ComplexField> &smearing_left,
             const std::vector<ComplexField> &smearing_right,
-            const std::vector<std::vector<Real>> &mom_smear,
-            const std::vector<Real> &relative_momentum);
+            const std::vector<std::vector<int>> &mom_smear,
+            const std::vector<int> &relative_momentum);
 };
 
 MODULE_REGISTER(A2ASmearedMesonField, ARG(TA2ASmearedMesonField<FIMPL>), MContraction);
@@ -213,10 +213,10 @@ void TA2ASmearedMesonField<FImpl>::setup(void)
     auto parse_momenta = [](const std::vector<std::string> &momenta, int dim,
           const std::string &desc)
     {
-        std::vector<std::vector<Real>> res;
+        std::vector<std::vector<int>> res;
         for (auto &pstr: momenta)
         {
-            auto p = strToVec<Real>(pstr);
+            auto p = strToVec<int>(pstr);
             if (p.size() != dim)
             {
                 HADRONS_ERROR(Size, desc + " has " + std::to_string(p.size())
@@ -472,13 +472,13 @@ void TA2ASmearedMesonField<FImpl>::smearing_weight(
         std::vector<ComplexField> &out,
         const std::vector<ComplexField> &smearing_left,
         const std::vector<ComplexField> &smearing_right,
-        const std::vector<std::vector<Real>> &mom_smear,
-        const std::vector<Real> &relative_momentum)
+        const std::vector<std::vector<int>> &mom_smear,
+        const std::vector<int> &relative_momentum)
 {
     assert(smearing_left.size() == smearing_right.size());
     assert(out.size() == smearing_left.size()*mom_smear.size());
     const int nmom_dims=env().getNd()-1;
-    std::vector<Real> mom_sum(nmom_dims);
+    std::vector<int> mom_sum(nmom_dims);
 
     auto out_it  =out.begin();
     auto left_it =smearing_left.begin();
