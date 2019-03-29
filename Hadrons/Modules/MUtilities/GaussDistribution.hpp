@@ -139,9 +139,12 @@ template <typename FImpl>
 void TGaussDistribution<FImpl>::GaussianHelper(LatticeComplex &f,
       const Real fact, const int dim) {
    envGetTmp(LatticeComplex, component);
+   std::vector<int> latt_size = f._grid->_fdimensions;
    f=zero;
    for(int mu=0; mu<dim; mu++) {
       LatticeCoordinate(component, mu);
+      assert(latt_size[mu]%2==0);
+      component-=Complex(latt_size[mu]/2-1);
       f+=component*component*fact;
    }
    f=exp(f);
