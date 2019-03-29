@@ -353,13 +353,18 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
         startTimer("Fourier transform A2A vectors");
         std::vector<int> mask(env().getNd(), 1);
         mask.back()=0; //transform only the first Nd-1 dimensions
+        assert(!left.empty());
+        std::vector<int> latt_size = left.front()._grid->_fdimensions;
+        Complex inv3dVol(1./(latt_size[0]*latt_size[1]*latt_size[2]));
         for(auto &i: left)
         {
             fft.FFT_dim_mask(i, i, mask, FFT::forward);
+            i*=inv3dVol;
         }
         for(auto &i: right)
         {
             fft.FFT_dim_mask(i, i, mask, FFT::forward);
+            i*=inv3dVol;
         }
         stopTimer("Fourier transform A2A vectors");
     }
