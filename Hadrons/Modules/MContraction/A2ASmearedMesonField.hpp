@@ -352,19 +352,14 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     {
         startTimer("Fourier transform A2A vectors");
         std::vector<int> mask(env().getNd(), 1);
-        mask.back()=0; //transform only the first Nd-1 dimensions
-        assert(!left.empty());
-        std::vector<int> latt_size = left.front()._grid->_fdimensions;
-        Complex inv3dVol(1./(latt_size[0]*latt_size[1]*latt_size[2]));
+        mask.back()=0; //transform only the spatial dimensions
         for(auto &i: left)
         {
             fft.FFT_dim_mask(i, i, mask, FFT::forward);
-            i*=inv3dVol;
         }
         for(auto &i: right)
         {
             fft.FFT_dim_mask(i, i, mask, FFT::forward);
-            i*=inv3dVol;
         }
         stopTimer("Fourier transform A2A vectors");
     }
@@ -485,6 +480,18 @@ void TA2ASmearedMesonField<FImpl>::smearing_weight(
     const int nmom_dims=env().getNd()-1;
     std::vector<int> mom_sum(nmom_dims);
 
+    const int spatialVol=[this]{
+        int ret=1;
+        std::vector<int> lattSizeSpatial=env().getGrid()->FullDimensions();
+        lattSizeSpatial.pop_back();
+        for(auto i : lattSizeSpatial)
+        {
+           ret*=i;
+        }
+        return ret;
+    }();
+    const Complex invSpVol(1./spatialVol);
+
     auto out_it  =out.begin();
     auto left_it =smearing_left.begin();
     auto right_it=smearing_right.begin();
@@ -501,7 +508,7 @@ void TA2ASmearedMesonField<FImpl>::smearing_weight(
             }
             *out_it=*right_it;
             multidim_Cshift_inplace(*out_it, mom_sum);
-            *out_it=*out_it * *left_it;
+            *out_it=*out_it * *left_it * invSpVol;
             out_it++;
         }
     }
