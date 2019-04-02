@@ -53,20 +53,20 @@ public:
                                     std::string, left,
                                     std::string, right,
                                     std::string, gaugeMatrix,
-                                    std::string, smearing_left,
-                                    std::string, smearing_right,
+                                    std::string, smearingLeft,
+                                    std::string, smearingRight,
                                     std::string, output,
                                     std::string, gammas,
-                                    std::vector<std::string>, mom_smear,
-                                    std::vector<std::string>, mom_rel);
+                                    std::vector<std::string>, smearMom,
+                                    std::vector<std::string>, mom);
 };
 
 class A2ASmearedMesonFieldMetadata: Serializable
 {
 public:
     GRID_SERIALIZABLE_CLASS_MEMBERS(A2ASmearedMesonFieldMetadata,
-                                    std::vector<int>, mom_smear,
-                                    std::vector<int>, mom_rel,
+                                    std::vector<int>, smearMom,
+                                    std::vector<int>, mom,
                                     Gamma::Algebra, gamma);
 };
 
@@ -137,16 +137,16 @@ public:
     // execution
     virtual void execute(void);
 private:
-    std::vector<Gamma::Algebra>        gamma_;
-    std::vector<std::vector<int>>     mom_smear_;
-    std::vector<std::vector<int>>     mom_rel_;
+    std::vector<Gamma::Algebra>       gamma_;
+    std::vector<std::vector<int>>     smearMom_;
+    std::vector<std::vector<int>>     mom_;
     template<typename Lattice, typename Iterable>
     void multidim_Cshift_inplace(Lattice &lat, const Iterable &shifts);
     void smearing_weight(std::vector<ComplexField> &out,
-            const std::vector<ComplexField> &smearing_left,
-            const std::vector<ComplexField> &smearing_right,
-            const std::vector<std::vector<int>> &mom_smear,
-            const std::vector<int> &relative_momentum);
+            const std::vector<ComplexField> &smearingLeft,
+            const std::vector<ComplexField> &smearingRight,
+            const std::vector<std::vector<int>> &smearMom,
+            const std::vector<int> &mom);
 };
 
 MODULE_REGISTER(A2ASmearedMesonField, ARG(TA2ASmearedMesonField<FIMPL>), MContraction);
@@ -167,7 +167,7 @@ template <typename FImpl>
 std::vector<std::string> TA2ASmearedMesonField<FImpl>::getInput(void)
 {
     std::vector<std::string> in = {par().left, par().right, par().gaugeMatrix,
-      par().smearing_left, par().smearing_right};
+        par().smearingLeft, par().smearingRight};
 
     return in;
 }
@@ -227,25 +227,25 @@ void TA2ASmearedMesonField<FImpl>::setup(void)
         }
         return res;
     };
-    mom_smear_ = parse_momenta(par().mom_smear, env().getNd()-1,
+    smearMom_ = parse_momenta(par().smearMom, env().getNd()-1,
             "Smearing momentum");
-    mom_rel_ = parse_momenta(par().mom_rel, env().getNd()-1,
-            "Relative momentum");
+    mom_ = parse_momenta(par().mom, env().getNd()-1,
+            "Momentum");
 
-    auto &smearing_left=envGet(std::vector<LatticeComplex>,
-            par().smearing_left);
-    auto &smearing_right=envGet(std::vector<LatticeComplex>,
-            par().smearing_right);
-    if(smearing_left.size() != smearing_right.size()) {
-        HADRONS_ERROR(Size, "The parameter '" + par().smearing_left + "' has "
-                            + std::to_string(smearing_left.size())
+    auto &smearingLeft=envGet(std::vector<LatticeComplex>,
+            par().smearingLeft);
+    auto &smearingRight=envGet(std::vector<LatticeComplex>,
+            par().smearingRight);
+    if(smearingLeft.size() != smearingRight.size()) {
+        HADRONS_ERROR(Size, "The parameter '" + par().smearingLeft + "' has "
+                            + std::to_string(smearingLeft.size())
                             + " elements while parameter '"
-                            + par().smearing_right + "' has "
-                            + std::to_string(smearing_right.size())
+                            + par().smearingRight + "' has "
+                            + std::to_string(smearingRight.size())
                             + " elements. They must be of equal length.");
     }
-    const auto nsmearing=smearing_left.size();
-    const auto smear_size=nsmearing*mom_smear_.size();
+    const auto nsmearing=smearingLeft.size();
+    const auto smear_size=nsmearing*smearMom_.size();
     envTmp(std::vector<ComplexField>, "smear_weight", 1, smear_size,
             envGetGrid(ComplexField));
     envTmp(Computation, "computation", 1, envGetGrid(FermionField), 
@@ -294,10 +294,10 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     auto &left = getA2AField(par().left, "left");
     auto &right = getA2AField(par().right, "right");
     auto &g = envGet(GaugeMat, par().gaugeMatrix);
-    auto &smearing_left
-        = envGet(std::vector<LatticeComplex>, par().smearing_left);
-    auto &smearing_right
-        = envGet(std::vector<LatticeComplex>, par().smearing_right);
+    auto &smearingLeft
+        = envGet(std::vector<LatticeComplex>, par().smearingLeft);
+    auto &smearingRight
+        = envGet(std::vector<LatticeComplex>, par().smearingRight);
     envGetTmp(FFT, fft);
     envGetTmp(std::vector<ComplexField>, smear_weight);
 
@@ -305,7 +305,7 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     int N_i        = left.size();
     int N_j        = right.size();
     int ngamma     = gamma_.size();
-    int nmom_smear = mom_smear_.size();
+    int nMomSmear  = smearMom_.size();
     int block      = par().block;
     int cacheBlock = par().cacheBlock;
 
@@ -315,12 +315,12 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     LOG(Message) << "Gauge fixing matrix: '" << par().gaugeMatrix
         << "'" << std::endl;
     LOG(Message) << "Smearing momenta:" << std::endl;
-    for (auto &p: mom_smear_)
+    for (auto &p: smearMom_)
     {
         LOG(Message) << "  " << p << std::endl;
     }
     LOG(Message) << "Relative momenta:" << std::endl;
-    for (auto &p: mom_rel_)
+    for (auto &p: mom_)
     {
         LOG(Message) << "  " << p << std::endl;
     }
@@ -364,47 +364,47 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
         stopTimer("Fourier transform A2A vectors");
     }
 
-    for(const auto &mrel: mom_rel_)
+    for(const auto &m: mom_)
     {
 
-        auto ionameFn = [this,&mrel,nmom_smear](const unsigned int m,
+        auto ionameFn = [this,&m,nMomSmear](const unsigned int ms,
                 const unsigned int g)
         {
             std::stringstream ss;
 
             ss << gamma_[g] << "_smear";
-            for(auto pmu: mom_smear_[m%nmom_smear])
+            for(auto pmu: smearMom_[ms%nMomSmear])
             {
-               ss << '_' << pmu;
+                ss << '_' << pmu;
             }
-            ss << "_rel";
-            for(auto pmu: mrel)
+            ss << "_mom";
+            for(auto pmu: m)
             {
-               ss << '_' << pmu;
+                ss << '_' << pmu;
             }
-            ss << "_smearing_" << m/nmom_smear;
+            ss << "_smearing_" << ms/nMomSmear;
 
             return ss.str();
         };
 
-        auto filenameFn = [this, &ionameFn](const unsigned int m, const unsigned int g)
+        auto filenameFn = [this, &ionameFn](const unsigned int ms, const unsigned int g)
         {
             return par().output + "." + std::to_string(vm().getTrajectory()) 
-                   + "/" + ionameFn(m, g) + ".h5";
+                   + "/" + ionameFn(ms, g) + ".h5";
         };
 
-        auto metadataFn = [this,&mrel,nmom_smear](const unsigned int m,
+        auto metadataFn = [this,&m,nMomSmear](const unsigned int ms,
                 const unsigned int g)
         {
             A2ASmearedMesonFieldMetadata md;
 
-            for (auto pmu: mom_smear_[m%nmom_smear])
+            for (auto pmu: smearMom_[ms%nMomSmear])
             {
-                md.mom_smear.push_back(pmu);
+                md.smearMom.push_back(pmu);
             }
-            for (auto pmu: mrel)
+            for (auto pmu: m)
             {
-                md.mom_rel.push_back(pmu);
+                md.mom.push_back(pmu);
             }
             md.gamma = gamma_[g];
             
@@ -414,31 +414,31 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
         startTimer("Cshift momentum A2A vector");
         for(auto &field: right)
         {
-            multidim_Cshift_inplace(field, mrel);
+            multidim_Cshift_inplace(field, m);
         }
         stopTimer("Cshift momentum A2A vector");
 
         startTimer("compute smearing weight");
-        smearing_weight(smear_weight, smearing_left, smearing_right,
-                mom_smear_, mrel);
+        smearing_weight(smear_weight, smearingLeft, smearingRight,
+                smearMom_, m);
         stopTimer("compute smearing weight");
-        Kernel      kernel(gamma_, smear_weight, envGetGrid(FermionField));
+        Kernel kernel(gamma_, smear_weight, envGetGrid(FermionField));
 
         envGetTmp(Computation, computation);
         computation.execute(left, right, kernel,
-              ionameFn, filenameFn, metadataFn);
+                ionameFn, filenameFn, metadataFn);
 
         //restore A2A vectors
         {
             startTimer("Cshift momentum A2A vector");
-            auto minus_mrel(mrel);
-            for(auto &i: minus_mrel)
+            auto mNeg(m);
+            for(auto &i: mNeg)
             {
-               i*=-1;
+                i*=-1;
             }
             for(auto &field: right)
             {
-                multidim_Cshift_inplace(field, minus_mrel);
+                multidim_Cshift_inplace(field, mNeg);
             }
             stopTimer("Cshift momentum A2A vector");
         }
@@ -462,23 +462,22 @@ void TA2ASmearedMesonField<FImpl>::multidim_Cshift_inplace(Lattice &lat,
 }
 
 //compute the smearing weight
-//out[n*Nm+m](q)=smearing_left[n](q)*smearing_right[n](q+p-mom_smear[m])
+//out[n*Nm+m](q)=smearingLeft[n](q)*smearingRight[n](q+p-smearMom[m])
 //where
-//Nm=mom_smear.size()
+//Nm=smearMom.size()
 //q: coordinate of the (momentum space) field
-//p=relative_momentum
+//p=mom
 template<typename FImpl>
 void TA2ASmearedMesonField<FImpl>::smearing_weight(
         std::vector<ComplexField> &out,
-        const std::vector<ComplexField> &smearing_left,
-        const std::vector<ComplexField> &smearing_right,
-        const std::vector<std::vector<int>> &mom_smear,
-        const std::vector<int> &relative_momentum)
+        const std::vector<ComplexField> &smearingLeft,
+        const std::vector<ComplexField> &smearingRight,
+        const std::vector<std::vector<int>> &smearMom,
+        const std::vector<int> &mom)
 {
-    assert(smearing_left.size() == smearing_right.size());
-    assert(out.size() == smearing_left.size()*mom_smear.size());
-    const int nmom_dims=env().getNd()-1;
-    std::vector<int> mom_sum(nmom_dims);
+    assert(smearingLeft.size() == smearingRight.size());
+    assert(out.size() == smearingLeft.size()*smearMom.size());
+    const int numSpatialDims=env().getNd()-1;
 
     const int spatialVol=[this]{
         int ret=1;
@@ -486,28 +485,29 @@ void TA2ASmearedMesonField<FImpl>::smearing_weight(
         lattSizeSpatial.pop_back();
         for(auto i : lattSizeSpatial)
         {
-           ret*=i;
+            ret*=i;
         }
         return ret;
     }();
     const Complex invSpVol(1./spatialVol);
 
+    std::vector<int> totalShift(numSpatialDims);
     auto out_it  =out.begin();
-    auto left_it =smearing_left.begin();
-    auto right_it=smearing_right.begin();
-    auto left_end=smearing_left.end();
+    auto left_it =smearingLeft.begin();
+    auto right_it=smearingRight.begin();
+    auto left_end=smearingLeft.end();
     for( ; left_it!=left_end ; ++left_it, ++right_it)
     {
-        for(const auto &msmear: mom_smear)
+        for(const auto &msmear: smearMom)
         {
-            assert(msmear.size() == nmom_dims);
-            assert(relative_momentum.size() == nmom_dims);
-            for(int i=0; i<nmom_dims; i++)
+            assert(msmear.size() == numSpatialDims);
+            assert(mom.size() == numSpatialDims);
+            for(int i=0; i<numSpatialDims; i++)
             {
-                mom_sum[i]=relative_momentum[i]-msmear[i];
+                totalShift[i]=mom[i]-msmear[i];
             }
             *out_it=*right_it;
-            multidim_Cshift_inplace(*out_it, mom_sum);
+            multidim_Cshift_inplace(*out_it, totalShift);
             *out_it=*out_it * *left_it * invSpVol;
             out_it++;
         }
