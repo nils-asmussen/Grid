@@ -36,13 +36,14 @@ BEGIN_HADRONS_NAMESPACE
 
 /******************************************************************************
  *                         GaussDistribution                                  *
- * if fourier=false:                                                          *
- *   result[i,x] = 1/(sqrt(2*pi)*widths[i])^dim*exp(-|x|^2/(2*width[i]^2))    *
- * if fourier=true:                                                           *
- *   result[i,x] = exp(-|x|^2/(2*(1/width[i])^2))                             *
- *
- * where:
- *   x=(x[0],x[1],...,x[dim-1])
+ * if Fourier=false:                                                          *
+ *   result[i,n] = 1/(sqrt(2*pi)*widths[i])^dim*exp(-|n|^2/(2*width[i]^2))    *
+ * if Fourier=true:                                                           *
+ *   result[i,n] = exp(-|p|^2*widths[i]^2/2)                                  *
+ *                                                                            *
+ * where:                                                                     *
+ *   n=(n[0],n[1],...,n[dim-1])  (lattice coordinate)                         *
+ *   p[i]=2*pi/L[i]*n[i]                                                      *
  ******************************************************************************/
 BEGIN_MODULE_NAMESPACE(MUtilities)
 
@@ -51,7 +52,7 @@ class GaussDistributionPar: Serializable
 public:
     GRID_SERIALIZABLE_CLASS_MEMBERS(GaussDistributionPar,
                                     std::string, widths,
-                                    bool,        fourier,
+                                    bool,        Fourier,
                                     int,         dim);
 };
 
@@ -72,7 +73,7 @@ public:
     virtual void execute(void);
 private:
     std::vector<Real> widths_;
-    void GaussianHelper(LatticeComplex &f, Real fact, int dim);
+    void GaussianHelper(LatticeComplex &f, Real fact, int dim, bool fourier);
 };
 
 MODULE_REGISTER_TMP(GaussDistribution, TGaussDistribution<FIMPL>, MUtilities);
@@ -119,7 +120,7 @@ void TGaussDistribution<FImpl>::execute(void)
 {
     auto &rho = envGet(std::vector<LatticeComplex>, getName());
     assert(widths_.size() == rho.size());
-    const bool fourier=par().fourier;
+    const bool fourier=par().Fourier;
     const int size=widths_.size();
     const int dim=par().dim;
     for(int i=0; i<size; i++) {
@@ -127,24 +128,31 @@ void TGaussDistribution<FImpl>::execute(void)
         auto &r=rho[i];
         const Real var=sig*sig;
         const Real fact=-0.5*( fourier ? var : 1/var );
-        GaussianHelper(r, fact, dim);
-        if(!fourier) {
+        GaussianHelper(r, fact, dim, fourier);
+        if(!fourier)
+        {
             r*=static_cast<Complex>(std::pow(sqrt(2*M_PI)*sig,dim));
         }
     }
 }
 
-//exp(fact*|x|^2)
+//fourier
+//   false: exp(fact*|n|^2)
+//   true: exp(fact*|p|^2) with p[i]=2*pi/L[i]*n[i]
 template <typename FImpl>
 void TGaussDistribution<FImpl>::GaussianHelper(LatticeComplex &f,
-      const Real fact, const int dim) {
+      const Real fact, const int dim, const bool fourier) {
    envGetTmp(LatticeComplex, component);
-   std::vector<int> latt_size = f._grid->_fdimensions;
+   std::vector<int> latt_size { env().getGrid()->FullDimensions() };
    f=zero;
    for(int mu=0; mu<dim; mu++) {
       LatticeCoordinate(component, mu);
       assert(latt_size[mu]%2==0);
       component-=Complex(latt_size[mu]/2-1);
+      if(fourier)
+      {
+         component*=Complex((2*M_PI)/latt_size[mu]);
+      }
       f+=component*component*fact;
    }
    f=exp(f);
