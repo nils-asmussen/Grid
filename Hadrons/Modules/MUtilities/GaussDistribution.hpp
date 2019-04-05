@@ -147,8 +147,6 @@ void TGaussDistribution<FImpl>::GaussianHelper(LatticeComplex &f,
    f=zero;
    for(int mu=0; mu<dim; mu++) {
       LatticeCoordinate(component, mu);
-      assert(latt_size[mu]%2==0);
-      component-=Complex(latt_size[mu]/2-1);
       if(fourier)
       {
          component*=Complex((2*M_PI)/latt_size[mu]);
