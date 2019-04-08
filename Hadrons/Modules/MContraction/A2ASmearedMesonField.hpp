@@ -52,7 +52,7 @@ public:
                                     bool, allowModifyingLeftRight,
                                     std::string, left,
                                     std::string, right,
-                                    std::string, gaugeMatrix,
+                                    std::string, gaugeXform,
                                     std::string, smearingLeft,
                                     std::string, smearingRight,
                                     std::string, output,
@@ -166,7 +166,7 @@ TA2ASmearedMesonField<FImpl>::TA2ASmearedMesonField(const std::string name)
 template <typename FImpl>
 std::vector<std::string> TA2ASmearedMesonField<FImpl>::getInput(void)
 {
-    std::vector<std::string> in = {par().left, par().right, par().gaugeMatrix,
+    std::vector<std::string> in = {par().left, par().right, par().gaugeXform,
         par().smearingLeft, par().smearingRight};
 
     return in;
@@ -293,7 +293,7 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     };
     auto &left = getA2AField(par().left, "left");
     auto &right = getA2AField(par().right, "right");
-    auto &g = envGet(GaugeMat, par().gaugeMatrix);
+    auto &g = envGet(GaugeMat, par().gaugeXform);
     auto &smearingLeft
         = envGet(std::vector<LatticeComplex>, par().smearingLeft);
     auto &smearingRight
@@ -305,21 +305,21 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     int N_i        = left.size();
     int N_j        = right.size();
     int ngamma     = gamma_.size();
-    int nMomSmear  = smearMom_.size();
+    int nSmearMom  = smearMom_.size();
     int block      = par().block;
     int cacheBlock = par().cacheBlock;
 
     LOG(Message) << "Computing smeared all-to-all meson fields" << std::endl;
     LOG(Message) << "Left: '" << par().left << "' Right: '" << par().right
         << "'" << std::endl;
-    LOG(Message) << "Gauge fixing matrix: '" << par().gaugeMatrix
+    LOG(Message) << "Gauge fixing matrix: '" << par().gaugeXform
         << "'" << std::endl;
     LOG(Message) << "Smearing momenta:" << std::endl;
     for (auto &p: smearMom_)
     {
         LOG(Message) << "  " << p << std::endl;
     }
-    LOG(Message) << "Relative momenta:" << std::endl;
+    LOG(Message) << "Momenta:" << std::endl;
     for (auto &p: mom_)
     {
         LOG(Message) << "  " << p << std::endl;
@@ -367,13 +367,13 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     for(const auto &m: mom_)
     {
 
-        auto ionameFn = [this,&m,nMomSmear](const unsigned int ms,
+        auto ionameFn = [this,&m,nSmearMom](const unsigned int ms,
                 const unsigned int g)
         {
             std::stringstream ss;
 
             ss << gamma_[g] << "_smear";
-            for(auto pmu: smearMom_[ms%nMomSmear])
+            for(auto pmu: smearMom_[ms%nSmearMom])
             {
                 ss << '_' << pmu;
             }
@@ -382,7 +382,7 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
             {
                 ss << '_' << pmu;
             }
-            ss << "_smearing_" << ms/nMomSmear;
+            ss << "_smearing_" << ms/nSmearMom;
 
             return ss.str();
         };
@@ -393,12 +393,12 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
                    + "/" + ionameFn(ms, g) + ".h5";
         };
 
-        auto metadataFn = [this,&m,nMomSmear](const unsigned int ms,
+        auto metadataFn = [this,&m,nSmearMom](const unsigned int ms,
                 const unsigned int g)
         {
             A2ASmearedMesonFieldMetadata md;
 
-            for (auto pmu: smearMom_[ms%nMomSmear])
+            for (auto pmu: smearMom_[ms%nSmearMom])
             {
                 md.smearMom.push_back(pmu);
             }
@@ -462,11 +462,12 @@ void TA2ASmearedMesonField<FImpl>::multidim_Cshift_inplace(Lattice &lat,
 }
 
 //compute the smearing weight
-//out[n*Nm+m](q)=smearingLeft[n](q)*smearingRight[n](q+p-smearMom[m])
+//out[n*Nm+m](q)=smearingLeft[n](q)*smearingRight[n](q+p-smearMom[m])*invSpVol
 //where
 //Nm=smearMom.size()
 //q: coordinate of the (momentum space) field
 //p=mom
+//invSpVol=1/spatialVol: factor needed to normalize the Fourier transform
 template<typename FImpl>
 void TA2ASmearedMesonField<FImpl>::smearing_weight(
         std::vector<ComplexField> &out,
