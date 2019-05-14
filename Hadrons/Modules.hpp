@@ -64,7 +64,6 @@
 #include <Hadrons/Modules/MSource/SeqGamma.hpp>
 #include <Hadrons/Modules/MSource/Wall.hpp>
 #include <Hadrons/Modules/MSource/Z2.hpp>
-#include <Hadrons/Modules/MUtilities/A2ATestVectors.hpp>
 #include <Hadrons/Modules/MUtilities/GaussDistribution.hpp>
 #include <Hadrons/Modules/MUtilities/GaussSmear.hpp>
 #include <Hadrons/Modules/MUtilities/PrecisionCast.hpp>

@@ -62,7 +62,6 @@ modules_cc =\
   Modules/MSource/SeqGamma.cc \
   Modules/MSource/Wall.cc \
   Modules/MSource/Z2.cc \
-  Modules/MUtilities/A2ATestVectors.cc \
   Modules/MUtilities/GaussDistribution.cc \
   Modules/MUtilities/GaussSmear.cc \
   Modules/MUtilities/PrecisionCast.cc \
@@ -135,7 +134,6 @@ modules_hpp =\
   Modules/MSource/SeqGamma.hpp \
   Modules/MSource/Wall.hpp \
   Modules/MSource/Z2.hpp \
-  Modules/MUtilities/A2ATestVectors.hpp \
   Modules/MUtilities/GaussDistribution.hpp \
   Modules/MUtilities/GaussSmear.hpp \
   Modules/MUtilities/PrecisionCast.hpp \
