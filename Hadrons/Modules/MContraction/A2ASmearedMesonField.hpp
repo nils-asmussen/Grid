@@ -166,8 +166,10 @@ TA2ASmearedMesonField<FImpl>::TA2ASmearedMesonField(const std::string name)
 template <typename FImpl>
 std::vector<std::string> TA2ASmearedMesonField<FImpl>::getInput(void)
 {
-    std::vector<std::string> in = {par().left, par().right, par().gaugeXform,
+    std::vector<std::string> in = {par().left, par().right,
         par().smearingLeft, par().smearingRight};
+    if(!par().gaugeXform.empty())
+       in.push_back(par().gaugeXform);
 
     return in;
 }
@@ -293,7 +295,6 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
     };
     auto &left = getA2AField(par().left, "left");
     auto &right = getA2AField(par().right, "right");
-    auto &g = envGet(GaugeMat, par().gaugeXform);
     auto &smearingLeft
         = envGet(std::vector<LatticeComplex>, par().smearingLeft);
     auto &smearingRight
@@ -335,17 +336,20 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
                  << "/momentum/bilinear)" << std::endl;
 
     //---Fixing gauge---
-    LOG(Message) << "Fixing gauge in A2A vectors" << std::endl;
-    startTimer("fixing gauge in A2A vectors");
-    for(auto &i: left)
-    {
-        i=g*i;
+    if(!par().gaugeXform.empty()) {
+        LOG(Message) << "Fixing gauge in A2A vectors" << std::endl;
+        auto &g = envGet(GaugeMat, par().gaugeXform);
+        startTimer("fixing gauge in A2A vectors");
+        for(auto &i: left)
+        {
+            i=g*i;
+        }
+        for(auto &i: right)
+        {
+            i=g*i;
+        }
+        stopTimer("fixing gauge in A2A vectors");
     }
-    for(auto &i: right)
-    {
-        i=g*i;
-    }
-    stopTimer("fixing gauge in A2A vectors");
 
     //---Fourier transform A2A vectors---
     LOG(Message) << "Fourier transforming A2A vectors" << std::endl;
