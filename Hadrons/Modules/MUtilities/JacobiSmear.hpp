@@ -57,7 +57,7 @@ TJacobiSmear<FImpl>::TJacobiSmear(const std::string name)
 template <typename FImpl>
 std::vector<std::string> TJacobiSmear<FImpl>::getInput(void)
 {
-    std::vector<std::string> in = {par().source, par().U, par().distribution};
+    std::vector<std::string> in = {par().source, par().U};
     
     return in;
 }
@@ -75,7 +75,6 @@ template <typename FImpl>
 void TJacobiSmear<FImpl>::setup(void)
 {
     envCreateLat(PropagatorField, getName());
-    envCache(CovariantSmearing<FImpl>, "covsmear", 1, env().getGrid());
 }
 
 // execution ///////////////////////////////////////////////////////////////////
@@ -85,7 +84,7 @@ void TJacobiSmear<FImpl>::execute(void)
     auto &out = envGet(PropagatorField, getName());
     auto &src = envGet(PropagatorField, par().source);
     auto &U = envGet(std::vector<LatticeColourMatrix>, par().U);
-    envGetTmp(CovariantSmearing<FImpl>, covsmear);
+    CovariantSmearing<FImpl> covsmear;
     out=src;
     startTimer("Jacobi iteration");
     covsmear.GaussianSmear(U, out, par().width, par().iterations, par().orthog);
