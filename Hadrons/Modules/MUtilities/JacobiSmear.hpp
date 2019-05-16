@@ -27,7 +27,7 @@ template <typename FImpl>
 class TJacobiSmear: public Module<JacobiSmearPar>
 {
 public:
-    BASIC_TYPE_ALIASES(FImpl,);
+    FERM_TYPE_ALIASES(FImpl,);
 public:
     // constructor
     TJacobiSmear(const std::string name);
@@ -75,6 +75,7 @@ template <typename FImpl>
 void TJacobiSmear<FImpl>::setup(void)
 {
     envCreateLat(PropagatorField, getName());
+    envTmp(std::vector<LatticeColourMatrix>, "Umu", 1, 4, envGetGrid(LatticeColourMatrix));
 }
 
 // execution ///////////////////////////////////////////////////////////////////
@@ -83,11 +84,16 @@ void TJacobiSmear<FImpl>::execute(void)
 {
     auto &out = envGet(PropagatorField, getName());
     auto &src = envGet(PropagatorField, par().source);
-    auto &U = envGet(std::vector<LatticeColourMatrix>, par().U);
+    auto &U = envGet(LatticeGaugeField, par().U);
+    envGetTmp(std::vector<LatticeColourMatrix>, Umu);
+    for(int mu=0; mu<4; mu++)
+    {
+       Umu.at(mu)=peekLorentz(U,mu);
+    }
     CovariantSmearing<FImpl> covsmear;
     out=src;
     startTimer("Jacobi iteration");
-    covsmear.GaussianSmear(U, out, par().width, par().iterations, par().orthog);
+    covsmear.GaussianSmear(Umu, out, par().width, par().iterations, par().orthog);
     stopTimer("Jacobi iteration");
 }
 
