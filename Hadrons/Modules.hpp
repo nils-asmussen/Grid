@@ -58,6 +58,8 @@
 #include <Hadrons/Modules/MSolver/LocalCoherenceLanczos.hpp>
 #include <Hadrons/Modules/MSolver/MixedPrecisionRBPrecCG.hpp>
 #include <Hadrons/Modules/MSolver/RBPrecCG.hpp>
+#include <Hadrons/Modules/MSource/GaussSmear.hpp>
+#include <Hadrons/Modules/MSource/JacobiSmear.hpp>
 #include <Hadrons/Modules/MSource/Momentum.hpp>
 #include <Hadrons/Modules/MSource/Point.hpp>
 #include <Hadrons/Modules/MSource/SeqConserved.hpp>
@@ -66,7 +68,5 @@
 #include <Hadrons/Modules/MSource/Z2.hpp>
 #include <Hadrons/Modules/MUtilities/A2ATestVectors.hpp>
 #include <Hadrons/Modules/MUtilities/GaussDistribution.hpp>
-#include <Hadrons/Modules/MUtilities/GaussSmear.hpp>
-#include <Hadrons/Modules/MUtilities/JacobiSmear.hpp>
 #include <Hadrons/Modules/MUtilities/PrecisionCast.hpp>
 #include <Hadrons/Modules/MUtilities/RandomVectors.hpp>

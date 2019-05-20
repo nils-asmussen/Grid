@@ -56,6 +56,8 @@ modules_cc =\
   Modules/MSolver/LocalCoherenceLanczos.cc \
   Modules/MSolver/MixedPrecisionRBPrecCG.cc \
   Modules/MSolver/RBPrecCG.cc \
+  Modules/MSource/GaussSmear.cc \
+  Modules/MSource/JacobiSmear.cc \
   Modules/MSource/Momentum.cc \
   Modules/MSource/Point.cc \
   Modules/MSource/SeqConserved.cc \
@@ -64,8 +66,6 @@ modules_cc =\
   Modules/MSource/Z2.cc \
   Modules/MUtilities/A2ATestVectors.cc \
   Modules/MUtilities/GaussDistribution.cc \
-  Modules/MUtilities/GaussSmear.cc \
-  Modules/MUtilities/JacobiSmear.cc \
   Modules/MUtilities/PrecisionCast.cc \
   Modules/MUtilities/RandomVectors.cc
 
@@ -130,6 +130,8 @@ modules_hpp =\
   Modules/MSolver/LocalCoherenceLanczos.hpp \
   Modules/MSolver/MixedPrecisionRBPrecCG.hpp \
   Modules/MSolver/RBPrecCG.hpp \
+  Modules/MSource/GaussSmear.hpp \
+  Modules/MSource/JacobiSmear.hpp \
   Modules/MSource/Momentum.hpp \
   Modules/MSource/Point.hpp \
   Modules/MSource/SeqConserved.hpp \
@@ -138,8 +140,6 @@ modules_hpp =\
   Modules/MSource/Z2.hpp \
   Modules/MUtilities/A2ATestVectors.hpp \
   Modules/MUtilities/GaussDistribution.hpp \
-  Modules/MUtilities/GaussSmear.hpp \
-  Modules/MUtilities/JacobiSmear.hpp \
   Modules/MUtilities/PrecisionCast.hpp \
   Modules/MUtilities/RandomVectors.hpp
 
