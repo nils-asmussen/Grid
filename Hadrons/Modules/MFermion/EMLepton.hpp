@@ -43,7 +43,7 @@ BEGIN_HADRONS_NAMESPACE
 *
 *	L(x) = \sum_y S(x,y) i*\gamma_mu*A_mu S(y,xl) \delta_{(tl-x0),dt} 
 *
-* with xl = (0,0,0,tl)
+* with a wall source for the lepton at tl
 *
 * In addition outputs the propagator without photon vertex
 * 
@@ -54,8 +54,9 @@ BEGIN_HADRONS_NAMESPACE
 *  - action: fermion action used for propagator (string)
 *  - emField: photon field A_mu (string)
 *  - mass: input mass for the lepton propagator
+*  - boundary: boundary conditions for the lepton propagator, e.g. "1 1 1 -1"
 *  - twist: twisted boundary for lepton propagator, e.g. "0.0 0.0 0.0 0.5"
-*  - deltat: source-sink separation
+*  - deltat: list of source-sink separations
 *
 *******************************************************************************/
 
@@ -74,7 +75,7 @@ public:
 				    double, mass,
                                     std::string , boundary,
 				    std::string,  twist,
-                                    unsigned int, deltat);
+				    std::vector<unsigned int>, deltat);
 };
 
 template <typename FImpl>
@@ -124,7 +125,12 @@ std::vector<std::string> TEMLepton<FImpl>::getInput(void)
 template <typename FImpl>
 std::vector<std::string> TEMLepton<FImpl>::getOutput(void)
 {
-    std::vector<std::string> out = {getName(), getName() + "_free"};
+    std::vector<std::string> out = {};
+    for(int i=0; i<par().deltat.size(); i++)
+    {
+	out.push_back(std::to_string(par().deltat[i]) + "_" + getName() + "_free");
+	out.push_back(std::to_string(par().deltat[i]) + "_" + getName());
+    }
     
     return out;
 }
@@ -134,8 +140,11 @@ template <typename FImpl>
 void TEMLepton<FImpl>::setup(void)
 {
     Ls_ = env().getObjectLs(par().action);
-    envCreateLat(PropagatorField, getName());
-    envCreateLat(PropagatorField, getName() + "_free");
+    for(int i=0; i<par().deltat.size(); i++)
+    {
+	envCreateLat(PropagatorField, std::to_string(par().deltat[i]) + "_" + getName() + "_free");
+	envCreateLat(PropagatorField, std::to_string(par().deltat[i]) + "_" + getName());
+    }
     envTmpLat(FermionField, "source", Ls_);
     envTmpLat(FermionField, "sol", Ls_);
     envTmpLat(FermionField, "tmp");
@@ -156,9 +165,6 @@ void TEMLepton<FImpl>::execute(void)
     auto        &mat = envGet(FMat, par().action);
     RealD mass = par().mass;
     Complex ci(0.0,1.0);
-
-    PropagatorField &Aslashlep = envGet(PropagatorField, getName());
-    PropagatorField &lep = envGet(PropagatorField, getName() + "_free");
     
     envGetTmp(FermionField, source);
     envGetTmp(FermionField, sol);
@@ -195,12 +201,9 @@ void TEMLepton<FImpl>::execute(void)
 
     unsigned int tl=0; 
 
-    //point source at (0,0,0,tl)
-    position.clear();
-    for(int tt=0;tt<Nd-1;tt++) position.push_back(0);
-    position.push_back(tl);
-    sourcetmp = zero;
-    pokeSite(id, sourcetmp, position);
+    //wallsource at tl
+    sourcetmp = 1.;
+    sourcetmp = where((tlat == tl), sourcetmp, 0.*sourcetmp);
 
     //free propagator from pt source 
     for (unsigned int s = 0; s < Ns; ++s)
@@ -230,15 +233,28 @@ void TEMLepton<FImpl>::execute(void)
         }
     }
 
+    for(unsigned int dt=0;dt<par().deltat.size();dt++){
+	PropagatorField &lep = envGet(PropagatorField, std::to_string(par().deltat[dt]) + "_" + getName() + "_free");
+	for(tl=0;tl<nt;tl++){
+
+	    //shift free propagator to different source positions
+	    //account for possible anti-periodic boundary in time
+	    proptmp = Cshift(freetmp,Tp, -tl);
+	    proptmp = where( tlat < tl, boundary[Tp]*proptmp, proptmp);
+
+            // free propagator for fixed source-sink separation
+	    lep = where(tlat == (tl-par().deltat[dt]+nt)%nt, proptmp, lep);
+	}
+	//account for possible anti-periodic boundary in time
+	lep = where( tlat >= nt-par().deltat[dt], boundary[Tp]*lep, lep);
+    }
+
     for(tl=0;tl<nt;tl++){
 
 	//shift free propagator to different source positions
 	//account for possible anti-periodic boundary in time
 	proptmp = Cshift(freetmp,Tp, -tl);
 	proptmp = where( tlat < tl, boundary[Tp]*proptmp, proptmp);
-
-        // free propagator for fixed source-sink separation 
-	lep = where(tlat == (tl-par().deltat+nt)%nt, proptmp, lep);
 
         // i*A_mu*gamma_mu
         sourcetmp = zero;
@@ -279,13 +295,17 @@ void TEMLepton<FImpl>::execute(void)
             }
 	}
 	// keep the result for the desired delta t
-	Aslashlep = where(tlat == (tl-par().deltat+nt)%nt, proptmp, Aslashlep);
+	for(unsigned int dt=0;dt<par().deltat.size();dt++){
+	    PropagatorField &Aslashlep = envGet(PropagatorField, std::to_string(par().deltat[dt]) + "_" + getName());
+	    Aslashlep = where(tlat == (tl-par().deltat[dt]+nt)%nt, proptmp, Aslashlep);
+	}
     }
 
     //account for possible anti-periodic boundary in time
-    Aslashlep = where( tlat >= nt-par().deltat, boundary[Tp]*Aslashlep, Aslashlep);
-    lep = where( tlat >= nt-par().deltat, boundary[Tp]*lep, lep);
-
+    for(unsigned int dt=0;dt<par().deltat.size();dt++){
+	PropagatorField &Aslashlep = envGet(PropagatorField, std::to_string(par().deltat[dt]) + "_" + getName());
+	Aslashlep = where( tlat >= nt-par().deltat[dt], boundary[Tp]*Aslashlep, Aslashlep);
+    }
 }
 
 END_MODULE_NAMESPACE
