@@ -73,6 +73,7 @@ namespace Contractor
         GRID_SERIALIZABLE_CLASS_MEMBERS(ProductPar,
                                         std::string, terms,
                                         std::vector<std::string>, times,
+                                        std::string, addTLast,
                                         std::string, translations,
                                         bool, translationAverage);
     };
@@ -302,11 +303,12 @@ int main(int argc, char* argv[])
             std::vector<std::string>               term = strToVec<std::string>(p.terms);
             std::vector<std::set<unsigned int>>    times;
             std::vector<std::vector<unsigned int>> timeSeq;
+            std::vector<unsigned int>              addTLast = strToVec<unsigned int>(p.addTLast);
             std::set<unsigned int>                 translations;
             std::vector<A2AMatrixTr<ComplexD>>     lastTerm(par.global.nt);
             A2AMatrix<ComplexD>                    prod, buf, tmp;
             TimerArray                             tAr;
-            double                                 fusec, busec, flops, bytes, tflops, tbytes, tusec;
+            double                                 fusec, busec, flops, bytes, tflops, tbytes, tfusec, tbusec;
             Contractor::CorrelatorResult           result;             
 
             tAr.startTimer("Total");
@@ -316,7 +318,7 @@ int main(int argc, char* argv[])
                 std::cout << term[g] << ((g == term.size() - 1) ? ')' : '*');
             }
             std::cout << std::endl;
-            if (term.size() != p.times.size() + 1)
+            if (term.size() != p.times.size())
             {
                 HADRONS_ERROR(Size, "number of terms (" + std::to_string(term.size()) 
                             + ") different from number of times (" 
@@ -387,16 +389,19 @@ int main(int argc, char* argv[])
                     tbytes = 0.;
                     fusec  = tAr.getDTimer("A*B algebra");
                     busec  = tAr.getDTimer("A*B total");
+                    tfusec  = tAr.getDTimer("tr(A*B)");
+                    tbusec  = tAr.getDTimer("tr(A*B)");
                     tAr.startTimer("Linear algebra");
                     for (unsigned int tLast = 0; tLast < par.global.nt; ++tLast)
                     {
                        tAr.startTimer("Disk vector overhead");
-                       prod = a2aMat.at(term[0])[TIME_MOD(t[0] + dt)];
+                       prod = a2aMat.at(term[0])[TIME_MOD(addTLast[0]*tLast + t[0] + dt)];
                        tAr.stopTimer("Disk vector overhead");
 
+                       for(unsigned int j = 1; j < term.size() - 2; ++j)
                        {
                           tAr.startTimer("Disk vector overhead");
-                          const A2AMatrix<ComplexD> &ref = a2aMat.at(term[1])[TIME_MOD(tLast + t[1] + dt)];
+                          const A2AMatrix<ComplexD> &ref = a2aMat.at(term[j])[TIME_MOD(addTLast[j]*tLast + t[j] + dt)];
                           tAr.stopTimer("Disk vector overhead");
                           tAr.startTimer("A*B total");
                           tAr.startTimer("A*B algebra");
@@ -409,22 +414,9 @@ int main(int argc, char* argv[])
                        }
 
                        {
+                          unsigned int j = term.size() - 1;
                           tAr.startTimer("Disk vector overhead");
-                          const A2AMatrix<ComplexD> &ref = a2aMat.at(term[2])[TIME_MOD(t[2] + dt)];
-                          tAr.stopTimer("Disk vector overhead");
-                          tAr.startTimer("A*B total");
-                          tAr.startTimer("A*B algebra");
-                          A2AContraction::mul(tmp, prod, ref);
-                          tAr.stopTimer("A*B algebra");
-                          flops += A2AContraction::mulFlops(prod, ref);
-                          prod   = tmp;
-                          tAr.stopTimer("A*B total");
-                          bytes += 3.*tmp.rows()*tmp.cols()*sizeof(ComplexD);
-                       }
-
-                       {
-                          tAr.startTimer("Disk vector overhead");
-                          const A2AMatrix<ComplexD> &ref = a2aMat.at(term[3])[TIME_MOD(tLast + t[3] + dt)];
+                          const A2AMatrix<ComplexD> &ref = a2aMat.at(term[j])[TIME_MOD(addTLast[j]*tLast + t[j] + dt)];
                           tAr.stopTimer("Disk vector overhead");
 
                           tAr.startTimer("tr(A*B)");
@@ -435,6 +427,7 @@ int main(int argc, char* argv[])
                        }
 
                     }
+                    tAr.stopTimer("Linear algebra");
                     if (term.size() > 2)
                     {
                         std::cout << Sec(tAr.getDTimer("A*B total") - busec) << " "
@@ -442,12 +435,9 @@ int main(int argc, char* argv[])
                                 << Bytes(bytes, tAr.getDTimer("A*B total") - busec) << std::endl;
                     }
                     std::cout << std::setw(8) << "traces";
-                    fusec  = tAr.getDTimer("tr(A*B)");
-                    busec  = tAr.getDTimer("tr(A*B)");
-                    tAr.stopTimer("Linear algebra");
-                    std::cout << Sec(tAr.getDTimer("tr(A*B)") - busec) << " "
-                            << Flops(tflops, tAr.getDTimer("tr(A*B)") - fusec) << " " 
-                            << Bytes(tbytes, tAr.getDTimer("tr(A*B)") - busec) << std::endl;
+                    std::cout << Sec(tAr.getDTimer("tr(A*B)") - tbusec) << " "
+                            << Flops(tflops, tAr.getDTimer("tr(A*B)") - tfusec) << " " 
+                            << Bytes(tbytes, tAr.getDTimer("tr(A*B)") - tbusec) << std::endl;
                     if (!p.translationAverage)
                     {
                         saveCorrelator(result, par.global.output, dt, traj);
