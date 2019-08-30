@@ -322,7 +322,13 @@ int main(int argc, char* argv[])
             {
                 HADRONS_ERROR(Size, "number of terms (" + std::to_string(term.size()) 
                             + ") different from number of times (" 
-                            + std::to_string(p.times.size() + 1) + ")");
+                            + std::to_string(p.times.size()) + ")");
+            }
+            if (term.size() != p.addTLast.size())
+            {
+                HADRONS_ERROR(Size, "number of terms (" + std::to_string(term.size()) 
+                            + ") different from number of addTLast components (" 
+                            + std::to_string(p.addTLast.size()) + ")");
             }
             for (auto &s: p.times)
             {
