@@ -404,7 +404,7 @@ int main(int argc, char* argv[])
                        prod = a2aMat.at(term[0])[TIME_MOD(addTLast[0]*tLast + t[0] + dt)];
                        tAr.stopTimer("Disk vector overhead");
 
-                       for(unsigned int j = 1; j < term.size() - 2; ++j)
+                       for(unsigned int j = 1; j < term.size() - 1; ++j)
                        {
                           tAr.startTimer("Disk vector overhead");
                           const A2AMatrix<ComplexD> &ref = a2aMat.at(term[j])[TIME_MOD(addTLast[j]*tLast + t[j] + dt)];
