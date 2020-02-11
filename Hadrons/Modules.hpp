@@ -79,6 +79,7 @@
 #include <Hadrons/Modules/MSource/Momentum.hpp>
 #include <Hadrons/Modules/MSource/MomentumPhase.hpp>
 #include <Hadrons/Modules/MSource/Point.hpp>
+#include <Hadrons/Modules/MSource/Scalar3DPoint.hpp>
 #include <Hadrons/Modules/MSource/SeqAslash.hpp>
 #include <Hadrons/Modules/MSource/SeqConserved.hpp>
 #include <Hadrons/Modules/MSource/SeqGamma.hpp>

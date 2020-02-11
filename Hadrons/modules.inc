@@ -76,6 +76,7 @@ modules_cc =\
   Modules/MSource/Momentum.cc \
   Modules/MSource/MomentumPhase.cc \
   Modules/MSource/Point.cc \
+  Modules/MSource/Scalar3DPoint.cc \
   Modules/MSource/SeqAslash.cc \
   Modules/MSource/SeqConserved.cc \
   Modules/MSource/SeqGamma.cc \
@@ -166,6 +167,7 @@ modules_hpp =\
   Modules/MSource/Momentum.hpp \
   Modules/MSource/MomentumPhase.hpp \
   Modules/MSource/Point.hpp \
+  Modules/MSource/Scalar3DPoint.hpp \
   Modules/MSource/SeqAslash.hpp \
   Modules/MSource/SeqConserved.hpp \
   Modules/MSource/SeqGamma.hpp \
