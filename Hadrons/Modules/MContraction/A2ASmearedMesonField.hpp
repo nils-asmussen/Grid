@@ -400,7 +400,7 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
         {
             auto &src=envGet(ComplexField, std::get<0>(i));
             auto &dst=distrib.at(std::get<1>(i));
-            fft.FFT_dim_mask(dst, src, mask, FFT::forward);
+            fft.FFT_dim_mask(dst, src, mask, FFT::backward);
         }
         stopTimer("Fourier transforming distributions");
         hasDistributions_=true;
@@ -414,11 +414,11 @@ void TA2ASmearedMesonField<FImpl>::execute(void)
         mask.back()=0; //transform only the spatial dimensions
         for(auto &i: left)
         {
-            fft.FFT_dim_mask(i, i, mask, FFT::forward);
+            fft.FFT_dim_mask(i, i, mask, FFT::backward);
         }
         for(auto &i: right)
         {
-            fft.FFT_dim_mask(i, i, mask, FFT::forward);
+            fft.FFT_dim_mask(i, i, mask, FFT::backward);
         }
         stopTimer("Fourier transform A2A vectors");
     }
@@ -523,12 +523,12 @@ void TA2ASmearedMesonField<FImpl>::multidim_Cshift_inplace(Lattice &lat,
 }
 
 //compute the smearing weight
-//out[n*Nm+m](q)=dist_left[n](q)*dist_right[n](q+p-smearMom[m])*invSpVol
+//out[n*Nm+m](q)=dist_left[n](q)*dist_right[n](q+p-smearMom[m])*FTnorm
 //where
 //Nm=smearMom.size()
 //q: coordinate of the (momentum space) field
 //p=mom
-//invSpVol=1/spatialVolume: factor needed to normalize the Fourier transform
+//FTnorm=spatialVolume^3: factor needed to normalize the Fourier transform
 template<typename FImpl>
 void TA2ASmearedMesonField<FImpl>::smearing_weight(
         std::vector<ComplexField> &out,
@@ -543,7 +543,8 @@ void TA2ASmearedMesonField<FImpl>::smearing_weight(
     assert(out.size() == distributionsNames_.size()*smearMom.size());
     const int numSpatialDims=env().getNd()-1;
     const int timeDim=env().getNd()-1;
-    const Complex invSpVol(env().getDim(timeDim) / env().getVolume());
+    double spvol=env().getVolume()/env().getDim(timeDim);
+    const Complex FTnorm(spvol*spvol*spvol);
 
     std::vector<int> totalShift(numSpatialDims);
     auto out_it = out.begin();
@@ -569,7 +570,7 @@ void TA2ASmearedMesonField<FImpl>::smearing_weight(
             multidim_Cshift_inplace(*out_it, totalShift);
             tmp_dist=dist_left;
             multidim_Cshift_inplace(tmp_dist, msmear);
-            *out_it=*out_it * tmp_dist * invSpVol;
+            *out_it=*out_it * tmp_dist * FTnorm;
             out_it++;
         }
     }
